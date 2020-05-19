@@ -29,12 +29,10 @@ func (c *HttpPusher) Push(ctx context.Context, message io.Reader) error {
 	if err != nil {
 		return &Error{Err: err}
 	}
-
+	verbose := flag(ctx, Verbose)
 	if len(m) == 0 {
-		if skip := ctx.Value(SkipEmptyLines); skip != nil && skip.(bool) {
-			if verbose := ctx.Value(Verbose); verbose != nil && verbose.(bool) {
-				log.Println(SkipEmptyLines)
-			}
+		if flag(ctx, SkipEmptyLines) && verbose {
+			log.Println(SkipEmptyLines)
 			return nil
 		}
 	}
@@ -46,6 +44,9 @@ func (c *HttpPusher) Push(ctx context.Context, message io.Reader) error {
 
 	req.Header.Set("Content-Type", "text/plain; charset=utf-8")
 
+	if verbose {
+		log.Printf("%s %s", req.Method, req.URL)
+	}
 	res, err := c.c.Do(req)
 	if err != nil {
 		return &Error{Msg: string(m), Err: err}
@@ -56,4 +57,11 @@ func (c *HttpPusher) Push(ctx context.Context, message io.Reader) error {
 	}
 
 	return nil
+}
+
+func flag(ctx context.Context, k string) bool {
+	if skip := ctx.Value(k); skip != nil {
+		return skip.(bool)
+	}
+	return false
 }
